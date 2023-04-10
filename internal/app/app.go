@@ -4,11 +4,18 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/Albitko/loyalty-program/internal/controller"
+	"github.com/Albitko/loyalty-program/internal/usecase"
 )
 
 func Run() {
-	userHandler := controller.NewUserAuthHandler()
-	ordersHandler := controller.NewOrdersHandler()
+
+	userAuthenticator := usecase.NewAuthenticator()
+	ordersProcessor := usecase.NewOrdersProcessor()
+	balanceProcessor := usecase.NewBalanceProcessor()
+
+	userHandler := controller.NewUserAuthHandler(userAuthenticator)
+	ordersHandler := controller.NewOrdersHandler(ordersProcessor)
+	balanceHandler := controller.NewBalanceHandler(balanceProcessor)
 
 	r := gin.New()
 	r.Use(gin.Logger())
@@ -18,11 +25,12 @@ func Run() {
 	r.POST("/api/user/login", userHandler.Login)
 
 	authorized := r.Group("/api/user")
+	// authorized.Use() JWT middleware
 	authorized.POST("orders", ordersHandler.CreateOrder)
 	authorized.GET("orders", ordersHandler.GetOrders)
-	authorized.GET("balance", ordersHandler.GetBalance)
-	authorized.GET("balance/withdraw", ordersHandler.Withdraw)
-	authorized.GET("withdrawals", ordersHandler.GetWithdrawn)
+	authorized.GET("balance", balanceHandler.GetBalance)
+	authorized.GET("balance/withdraw", balanceHandler.Withdraw)
+	authorized.GET("withdrawals", balanceHandler.GetWithdrawn)
 
 	r.Run(":8080")
 }
