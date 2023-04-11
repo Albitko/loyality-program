@@ -1,17 +1,24 @@
 package app
 
 import (
+	"context"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/Albitko/loyalty-program/internal/controller"
+	"github.com/Albitko/loyalty-program/internal/repo"
 	"github.com/Albitko/loyalty-program/internal/usecase"
 )
 
 func Run() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	userAuthenticator := usecase.NewAuthenticator()
-	ordersProcessor := usecase.NewOrdersProcessor()
-	balanceProcessor := usecase.NewBalanceProcessor()
+	repository := repo.NewRepository(ctx, "postgresql://localhost:5432/postgres")
+
+	userAuthenticator := usecase.NewAuthenticator(repository)
+	ordersProcessor := usecase.NewOrdersProcessor(repository)
+	balanceProcessor := usecase.NewBalanceProcessor(repository)
 
 	userHandler := controller.NewUserAuthHandler(userAuthenticator)
 	ordersHandler := controller.NewOrdersHandler(ordersProcessor)

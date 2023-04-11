@@ -4,7 +4,14 @@ import (
 	"context"
 )
 
+type balanceRepository interface {
+	GetUserBalance(ctx context.Context, user string) (string, error)
+	GetUserWithdrawn(ctx context.Context, user string) (string, error)
+	Withdraw(ctx context.Context, amount string) error
+}
+
 type balanceProcessor struct {
+	repository balanceRepository
 }
 
 func (b balanceProcessor) GetUserBalance(ctx context.Context) error {
@@ -27,6 +34,8 @@ func (b balanceProcessor) Withdraw(ctx context.Context) error {
 	panic("implement me")
 }
 
-func NewBalanceProcessor() *balanceProcessor {
-	return &balanceProcessor{}
+func NewBalanceProcessor(repository balanceRepository) *balanceProcessor {
+	return &balanceProcessor{
+		repository: repository,
+	}
 }
