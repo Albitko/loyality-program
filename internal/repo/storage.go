@@ -8,6 +8,8 @@ import (
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
+
+	"github.com/Albitko/loyalty-program/internal/entities"
 )
 
 const schema = `
@@ -35,6 +37,11 @@ const schema = `
 type repository struct {
 	db  *sql.DB
 	ctx context.Context
+}
+
+func (r *repository) UpdateOrder(ctx context.Context, order entities.Order) error {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (r *repository) GetUserBalance(ctx context.Context, user string) (string, error) {
@@ -90,6 +97,10 @@ func (r *repository) Ping() error {
 		return fmt.Errorf("PingContext failed: %w", err)
 	}
 	return nil
+}
+
+func (r *repository) Close() {
+	r.db.Close()
 }
 
 func NewRepository(ctx context.Context, psqlConn string) *repository {
