@@ -8,17 +8,23 @@ import (
 	"github.com/Albitko/loyalty-program/internal/controller"
 	"github.com/Albitko/loyalty-program/internal/repo"
 	"github.com/Albitko/loyalty-program/internal/usecase"
+	"github.com/Albitko/loyalty-program/internal/workers"
 )
 
 func Run() {
+	// Implement config with ENV and FLAG
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	repository := repo.NewRepository(ctx, "postgresql://localhost:5432/postgres")
+	storage := repo.NewRepository(ctx, "postgresql://localhost:5432/postgres")
+	defer storage.Close()
 
-	userAuthenticator := usecase.NewAuthenticator(repository)
-	ordersProcessor := usecase.NewOrdersProcessor(repository)
-	balanceProcessor := usecase.NewBalanceProcessor(repository)
+	workers.InitWorkers(ctx, storage, "https://test-service.com")
+
+	userAuthenticator := usecase.NewAuthenticator(storage)
+	ordersProcessor := usecase.NewOrdersProcessor(storage)
+	balanceProcessor := usecase.NewBalanceProcessor(storage)
 
 	userHandler := controller.NewUserAuthHandler(userAuthenticator)
 	ordersHandler := controller.NewOrdersHandler(ordersProcessor)
