@@ -22,7 +22,7 @@ func (b *balanceHandler) GetBalance(c *gin.Context) {
 func (b *balanceHandler) Withdraw(c *gin.Context) {
 }
 
-func (w *balanceHandler) GetWithdrawn(c *gin.Context) {
+func (b *balanceHandler) GetWithdrawn(c *gin.Context) {
 }
 
 func NewBalanceHandler(processor balanceProcessor) *balanceHandler {
