@@ -37,7 +37,7 @@ func Run() {
 	r.POST("/api/user/register", userHandler.Register)
 	r.POST("/api/user/login", userHandler.Login)
 
-	authorized := r.Group("/api/user")
+	authorized := r.Group("/api/user/")
 	// authorized.Use() JWT middleware
 	authorized.POST("orders", ordersHandler.CreateOrder)
 	authorized.GET("orders", ordersHandler.GetOrders)
