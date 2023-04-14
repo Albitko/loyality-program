@@ -31,9 +31,12 @@ func (a *accrualChecker) loop() {
 		if err != nil {
 			continue
 		}
-		a.storage.UpdateOrder(a.ctx, updatedOrder)
+		err = a.storage.UpdateOrder(a.ctx, updatedOrder)
+		if err != nil {
+			continue
+		}
 
-		if updatedOrder.Status != "INVALID" || updatedOrder.Status != "PROCESSED" {
+		if updatedOrder.Status != "INVALID" && updatedOrder.Status != "PROCESSED" {
 			a.queue.Push(updatedOrder)
 		}
 	}

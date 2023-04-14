@@ -45,5 +45,8 @@ func Run() {
 	authorized.GET("balance/withdraw", balanceHandler.Withdraw)
 	authorized.GET("withdrawals", balanceHandler.GetWithdrawn)
 
-	r.Run(":8080")
+	err := r.Run(":8080")
+	if err != nil {
+		return
+	}
 }

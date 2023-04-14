@@ -21,11 +21,17 @@ func (u *userAuthHandler) checkRequestFormat() error {
 }
 
 func (u *userAuthHandler) Register(c *gin.Context) {
-	u.checkRequestFormat()
+	err := u.checkRequestFormat()
+	if err != nil {
+		return
+	}
 }
 
 func (u *userAuthHandler) Login(c *gin.Context) {
-	u.checkRequestFormat()
+	err := u.checkRequestFormat()
+	if err != nil {
+		return
+	}
 }
 
 func NewUserAuthHandler(auth userAuthenticator) *userAuthHandler {
