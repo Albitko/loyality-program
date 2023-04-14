@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"context"
+
+	"github.com/Albitko/loyalty-program/internal/entities"
 )
 
 type ordersRepository interface {
@@ -10,8 +12,13 @@ type ordersRepository interface {
 	GetOrdersForUser(ctx context.Context, user string) ([]string, error)
 }
 
+type ordersQueue interface {
+	Push(entities.Order)
+}
+
 type ordersProcessor struct {
 	repository ordersRepository
+	queue      ordersQueue
 }
 
 func (o *ordersProcessor) CheckOrderExist(ctx context.Context) error {
@@ -21,6 +28,8 @@ func (o *ordersProcessor) CheckOrderExist(ctx context.Context) error {
 
 func (o *ordersProcessor) RegisterOrder(ctx context.Context) error {
 	//TODO implement me
+	// write order to DB with CreateOrder
+	// push it to the queue
 	panic("implement me")
 }
 
@@ -29,8 +38,9 @@ func (o *ordersProcessor) GetUserOrder(ctx context.Context) error {
 	panic("implement me")
 }
 
-func NewOrdersProcessor(repository ordersRepository) *ordersProcessor {
+func NewOrdersProcessor(repository ordersRepository, queue ordersQueue) *ordersProcessor {
 	return &ordersProcessor{
 		repository: repository,
+		queue:      queue,
 	}
 }

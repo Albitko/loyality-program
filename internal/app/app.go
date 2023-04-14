@@ -20,10 +20,10 @@ func Run() {
 	storage := repo.NewRepository(ctx, "postgresql://localhost:5432/postgres")
 	defer storage.Close()
 
-	workers.InitWorkers(ctx, storage, "https://test-service.com")
+	queue := workers.InitWorkers(ctx, storage, "https://test-service.com")
 
 	userAuthenticator := usecase.NewAuthenticator(storage)
-	ordersProcessor := usecase.NewOrdersProcessor(storage)
+	ordersProcessor := usecase.NewOrdersProcessor(storage, queue)
 	balanceProcessor := usecase.NewBalanceProcessor(storage)
 
 	userHandler := controller.NewUserAuthHandler(userAuthenticator)
