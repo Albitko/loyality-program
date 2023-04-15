@@ -2,14 +2,21 @@ package app
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/Albitko/loyalty-program/internal/config"
 	"github.com/Albitko/loyalty-program/internal/controller"
 	"github.com/Albitko/loyalty-program/internal/repo"
 	"github.com/Albitko/loyalty-program/internal/usecase"
+	"github.com/Albitko/loyalty-program/internal/utils"
 	"github.com/Albitko/loyalty-program/internal/workers"
 )
+
+func init() {
+	utils.InitializeLogger()
+}
 
 func Run() {
 	// Implement config with ENV and FLAG
@@ -17,7 +24,16 @@ func Run() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	storage := repo.NewRepository(ctx, "postgresql://localhost:5432/postgres")
+	defer func() { _ = utils.Logger.Sync() }()
+	cfg, err := config.New()
+	if err != nil {
+		panic(fmt.Errorf("create config failed: %w", err))
+	}
+
+	utils.Logger.Info("program started")
+	defer utils.Logger.Info("program finished")
+
+	storage := repo.NewRepository(ctx, cfg.DatabaseURI)
 	defer storage.Close()
 
 	queue := workers.InitWorkers(ctx, storage, "https://test-service.com")
@@ -45,7 +61,7 @@ func Run() {
 	authorized.GET("balance/withdraw", balanceHandler.Withdraw)
 	authorized.GET("withdrawals", balanceHandler.GetWithdrawn)
 
-	err := r.Run(":8080")
+	err = r.Run(cfg.RunAddress)
 	if err != nil {
 		return
 	}
