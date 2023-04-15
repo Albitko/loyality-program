@@ -19,8 +19,6 @@ func init() {
 }
 
 func Run() {
-	// Implement config with ENV and FLAG
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -63,6 +61,6 @@ func Run() {
 
 	err = r.Run(cfg.RunAddress)
 	if err != nil {
-		return
+		panic(fmt.Errorf("start server failed: %w", err))
 	}
 }
