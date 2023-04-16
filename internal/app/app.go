@@ -28,9 +28,6 @@ func Run() {
 		panic(fmt.Errorf("create config failed: %w", err))
 	}
 
-	utils.Logger.Info("program started")
-	defer utils.Logger.Info("program finished")
-
 	storage := repo.NewRepository(ctx, cfg.DatabaseURI)
 	defer storage.Close()
 

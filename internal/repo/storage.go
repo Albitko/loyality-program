@@ -3,15 +3,20 @@ package repo
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/Albitko/loyalty-program/internal/entities"
 )
 
+const (
+	uniqueViolationErr = "23505"
+)
 const schema = `
  	CREATE TABLE IF NOT EXISTS users (
 		id text primary key,
@@ -74,19 +79,48 @@ func (r *repository) GetOrdersForUser(ctx context.Context, user string) ([]strin
 	panic("implement me")
 }
 
-func (r *repository) CheckLoginRegister(ctx context.Context, login string) error {
-	//TODO implement me
-	panic("implement me")
-}
+func (r *repository) Register(ctx context.Context, id, login, hashedPassword string) error {
+	var pgErr *pgconn.PgError
 
-func (r *repository) Register(ctx context.Context, login, password string) error {
-	//TODO implement me
-	panic("implement me")
+	insertCredentials, err := r.db.PrepareContext(ctx, "INSERT INTO users (id, login, password) VALUES ($1, $2, $3);")
+	if err != nil {
+		return err
+	}
+	defer insertCredentials.Close()
+	_, err = insertCredentials.ExecContext(ctx, id, login, hashedPassword)
+
+	log.Println("1")
+	if err != nil && errors.As(err, &pgErr) {
+		log.Println("2")
+
+		if pgErr.Code == uniqueViolationErr {
+			log.Println("3")
+			return entities.ErrLoginAlreadyInUse
+		} else {
+			log.Println("4")
+			return err
+		}
+	}
+	return nil
 }
 
 func (r *repository) GetCredentials(ctx context.Context, login string) (string, error) {
-	//TODO implement me
-	panic("implement me")
+	var pass string
+
+	selectPassForLogin, err := r.db.PrepareContext(
+		ctx, "SELECT password FROM users WHERE login=$1;",
+	)
+	if err != nil {
+		return "", err
+	}
+	defer selectPassForLogin.Close()
+
+	err = selectPassForLogin.QueryRowContext(ctx, login).Scan(&pass)
+
+	if err != nil {
+		return "", err
+	}
+	return pass, nil
 }
 
 func (r *repository) Ping() error {
