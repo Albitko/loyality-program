@@ -82,45 +82,46 @@ func (r *repository) GetOrdersForUser(ctx context.Context, user string) ([]strin
 func (r *repository) Register(ctx context.Context, id, login, hashedPassword string) error {
 	var pgErr *pgconn.PgError
 
-	insertCredentials, err := r.db.PrepareContext(ctx, "INSERT INTO users (id, login, password) VALUES ($1, $2, $3);")
+	insertCredentials, err := r.db.PrepareContext(
+		ctx, "INSERT INTO users (id, login, password) VALUES ($1, $2, $3);",
+	)
 	if err != nil {
 		return err
 	}
 	defer insertCredentials.Close()
 	_, err = insertCredentials.ExecContext(ctx, id, login, hashedPassword)
 
-	log.Println("1")
 	if err != nil && errors.As(err, &pgErr) {
-		log.Println("2")
-
 		if pgErr.Code == uniqueViolationErr {
-			log.Println("3")
 			return entities.ErrLoginAlreadyInUse
 		} else {
-			log.Println("4")
 			return err
 		}
 	}
 	return nil
 }
 
-func (r *repository) GetCredentials(ctx context.Context, login string) (string, error) {
-	var pass string
+func (r *repository) GetCredentials(ctx context.Context, login string) (entities.User, error) {
+	var user entities.User
+	var id string
+	var hashedPassword string
 
 	selectPassForLogin, err := r.db.PrepareContext(
-		ctx, "SELECT password FROM users WHERE login=$1;",
+		ctx, "SELECT id, password FROM users WHERE login=$1;",
 	)
 	if err != nil {
-		return "", err
+		return user, err
 	}
 	defer selectPassForLogin.Close()
 
-	err = selectPassForLogin.QueryRowContext(ctx, login).Scan(&pass)
-
+	err = selectPassForLogin.QueryRowContext(ctx, login).Scan(&id, &hashedPassword)
 	if err != nil {
-		return "", err
+		return user, err
 	}
-	return pass, nil
+	user.ID = id
+	user.Login = login
+	user.Password = hashedPassword
+	return user, nil
 }
 
 func (r *repository) Ping() error {
