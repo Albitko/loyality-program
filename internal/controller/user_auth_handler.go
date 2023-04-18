@@ -6,14 +6,15 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 
 	"github.com/Albitko/loyalty-program/internal/entities"
 )
 
 type userAuthenticator interface {
-	CheckIsLoginFree(ctx context.Context, login string) error
-	Register(ctx context.Context, login, password string) error
-	Auth(ctx context.Context) error
+	Register(ctx context.Context, user entities.User) error
+	Auth(ctx context.Context, login, password string) (entities.User, error)
+	CreateAccessToken(user entities.User) (string, error)
 }
 
 type userAuthHandler struct {
@@ -28,7 +29,13 @@ func (u *userAuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	err = u.auth.Register(c, request.Login, request.Password)
+	user := entities.User{
+		ID:       uuid.New().String(),
+		Login:    request.Login,
+		Password: request.Password,
+	}
+
+	err = u.auth.Register(c, user)
 	if errors.Is(err, entities.ErrLoginAlreadyInUse) {
 		c.JSON(http.StatusConflict, entities.ErrorResponse{Message: "User already exists with the given login"})
 		return
@@ -37,11 +44,41 @@ func (u *userAuthHandler) Register(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, entities.ErrorResponse{Message: err.Error()})
 		return
 	}
+
+	accessToken, err := u.auth.CreateAccessToken(user)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, entities.ErrorResponse{Message: err.Error()})
+		return
+	}
+	c.Header("Authorization", accessToken)
 	c.JSON(http.StatusOK, entities.ErrorResponse{Message: "User registered"})
 }
 
 func (u *userAuthHandler) Login(c *gin.Context) {
+	var request entities.AuthRequest
+	err := c.ShouldBindJSON(&request)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, entities.ErrorResponse{Message: err.Error()})
+		return
+	}
 
+	user, err := u.auth.Auth(c, request.Login, request.Password)
+	if errors.Is(err, entities.ErrInvalidCredentials) {
+		c.JSON(http.StatusUnauthorized, entities.ErrorResponse{Message: "Invalid login or password"})
+		return
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, entities.ErrorResponse{Message: err.Error()})
+		return
+	}
+
+	accessToken, err := u.auth.CreateAccessToken(user)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, entities.ErrorResponse{Message: err.Error()})
+		return
+	}
+	c.Header("Authorization", accessToken)
+	c.JSON(http.StatusOK, entities.ErrorResponse{Message: "User registered"})
 }
 
 func NewUserAuthHandler(auth userAuthenticator) *userAuthHandler {
