@@ -8,6 +8,7 @@ import (
 
 	"github.com/Albitko/loyalty-program/internal/config"
 	"github.com/Albitko/loyalty-program/internal/controller"
+	"github.com/Albitko/loyalty-program/internal/middleware"
 	"github.com/Albitko/loyalty-program/internal/repo"
 	"github.com/Albitko/loyalty-program/internal/usecase"
 	"github.com/Albitko/loyalty-program/internal/utils"
@@ -33,7 +34,8 @@ func Run() {
 
 	queue := workers.InitWorkers(ctx, storage, "https://test-service.com")
 
-	userAuthenticator := usecase.NewAuthenticator(storage)
+	secret := utils.GenerateSecret()
+	userAuthenticator := usecase.NewAuthenticator(storage, secret)
 	ordersProcessor := usecase.NewOrdersProcessor(storage, queue)
 	balanceProcessor := usecase.NewBalanceProcessor(storage)
 
@@ -49,7 +51,7 @@ func Run() {
 	r.POST("/api/user/login", userHandler.Login)
 
 	authorized := r.Group("/api/user/")
-	// authorized.Use() JWT middleware
+	authorized.Use(middleware.JwtAuthMiddleware(secret))
 	authorized.POST("orders", ordersHandler.CreateOrder)
 	authorized.GET("orders", ordersHandler.GetOrders)
 	authorized.GET("balance", balanceHandler.GetBalance)
