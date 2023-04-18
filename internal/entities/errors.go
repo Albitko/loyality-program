@@ -5,5 +5,6 @@ import (
 )
 
 var (
-	ErrLoginAlreadyInUse = errors.New("login already exists")
+	ErrLoginAlreadyInUse  = errors.New("login already exists")
+	ErrInvalidCredentials = errors.New("invalid credentials")
 )
