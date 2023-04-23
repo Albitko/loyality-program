@@ -13,7 +13,7 @@ func New() (entities.Config, error) {
 
 	flag.StringVar(&cfg.RunAddress, "a", "localhost:8080", "host and port to listen on")
 	flag.StringVar(&cfg.DatabaseURI, "d", "postgresql://localhost:5432/postgres", "database DSN")
-	flag.StringVar(&cfg.AccrualSystemAddress, "r", "", "File that stores URL -> ID")
+	flag.StringVar(&cfg.AccrualSystemAddress, "r", "", "accrual system address")
 	flag.Parse()
 
 	err := env.Parse(&cfg)
