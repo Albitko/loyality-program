@@ -17,6 +17,7 @@ import (
 
 func init() {
 	utils.InitializeLogger()
+	utils.InitializeRestyClient()
 }
 
 func Run() {
@@ -32,7 +33,7 @@ func Run() {
 	storage := repo.NewRepository(ctx, cfg.DatabaseURI)
 	defer storage.Close()
 
-	queue := workers.InitWorkers(ctx, storage, "https://test-service.com")
+	queue := workers.InitWorkers(ctx, storage, cfg.AccrualSystemAddress)
 
 	secret := utils.GenerateSecret()
 	userAuthenticator := usecase.NewAuthenticator(storage, secret)
