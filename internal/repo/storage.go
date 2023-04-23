@@ -24,10 +24,10 @@ const schema = `
 		password text not null
 	);
 	CREATE TABLE IF NOT EXISTS orders (
-	  	"order" text primary key unique,
+	  	"order_number" text primary key unique,
 	  	user_id text not null references users(id),
 	    status text not null,
-	    accrual float not null,
+	    accrual float not null default 0,
 		"current" float not null default 0,
         withdrawn float not null  default 0,
 	    uploaded_at timestamp
@@ -45,8 +45,19 @@ type repository struct {
 }
 
 func (r *repository) UpdateOrder(ctx context.Context, order entities.Order) error {
-	//TODO implement me
-	panic("implement me")
+	updateOrder, err := r.db.PrepareContext(
+		ctx, "UPDATE orders SET status=$1, accrual=$2, current=$2 WHERE order_number=$3;",
+	)
+	log.Println(order)
+	defer updateOrder.Close()
+	if err != nil {
+		return err
+	}
+	_, err = updateOrder.ExecContext(ctx, order.Status, order.Accrual, order.OrderID)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (r *repository) GetUserBalance(ctx context.Context, user string) (string, error) {
@@ -65,18 +76,80 @@ func (r *repository) Withdraw(ctx context.Context, amount string) error {
 }
 
 func (r *repository) GetUserForOrder(ctx context.Context, order string) (string, error) {
-	//TODO implement me
-	panic("implement me")
+	var userID string
+
+	selectUserIDForOrder, err := r.db.PrepareContext(
+		ctx, "SELECT user_id FROM orders WHERE order_number=$1;",
+	)
+	defer selectUserIDForOrder.Close()
+	if err != nil {
+		return "", err
+	}
+	err = selectUserIDForOrder.QueryRowContext(ctx, order).Scan(&userID)
+
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", entities.ErrNoOrderForUser
+		} else {
+			return "", err
+		}
+	}
+	return userID, nil
 }
 
-func (r *repository) CreateOrder(ctx context.Context, order string) error {
-	//TODO implement me
-	panic("implement me")
+func (r *repository) CreateOrder(ctx context.Context, order entities.Order, userID string) error {
+	now := time.Now()
+	uploadedAt := now.Format(time.RFC3339)
+
+	createOrder, err := r.db.PrepareContext(
+		ctx, "INSERT INTO orders (order_number, user_id, status, uploaded_at) VALUES ($1, $2, $3, $4);",
+	)
+	defer createOrder.Close()
+
+	if err != nil {
+		return err
+	}
+	_, err = createOrder.ExecContext(ctx, order.OrderID, userID, order.Status, uploadedAt)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func (r *repository) GetOrdersForUser(ctx context.Context, user string) ([]string, error) {
-	//TODO implement me
-	panic("implement me")
+func (r *repository) GetOrdersForUser(ctx context.Context, userID string) ([]entities.OrderWithTime, error) {
+	var orders []entities.OrderWithTime
+	var order entities.OrderWithTime
+
+	selectOrdersForUser, err := r.db.PrepareContext(
+		ctx,
+		"SELECT order_number, status, accrual, uploaded_at FROM orders WHERE user_id=$1 ORDER BY uploaded_at;",
+	)
+	defer selectOrdersForUser.Close()
+	if err != nil {
+		return orders, err
+	}
+	row, err := selectOrdersForUser.QueryContext(ctx, userID)
+	defer row.Close()
+	if err != nil {
+		return orders, err
+	}
+
+	if err = row.Err(); err != nil {
+		return orders, err
+	}
+	for row.Next() {
+		err := row.Scan(&order.OrderID, &order.Status, &order.Accrual, &order.UpdatedAt)
+		if err != nil {
+			return orders, err
+		}
+		orders = append(orders, order)
+	}
+	if len(orders) == 0 {
+		return orders, entities.ErrNoOrderForUser
+	}
+	return orders, nil
 }
 
 func (r *repository) Register(ctx context.Context, id, login, hashedPassword string) error {
