@@ -2,14 +2,16 @@ package usecase
 
 import (
 	"context"
+	"log"
+	"strconv"
 
 	"github.com/Albitko/loyalty-program/internal/entities"
 )
 
 type ordersRepository interface {
 	GetUserForOrder(ctx context.Context, order string) (string, error)
-	CreateOrder(ctx context.Context, order string) error
-	GetOrdersForUser(ctx context.Context, user string) ([]string, error)
+	CreateOrder(ctx context.Context, order entities.Order, userID string) error
+	GetOrdersForUser(ctx context.Context, user string) ([]entities.OrderWithTime, error)
 }
 
 type ordersQueue interface {
@@ -21,21 +23,40 @@ type ordersProcessor struct {
 	queue      ordersQueue
 }
 
-func (o *ordersProcessor) CheckOrderExist(ctx context.Context) error {
-	//TODO implement me
-	panic("implement me")
+func (o *ordersProcessor) CheckOrderExist(ctx context.Context, order int, userFromRequest string) error {
+	userFromDB, err := o.repository.GetUserForOrder(ctx, strconv.Itoa(order))
+	log.Println(err)
+	if err != nil {
+		return err
+	}
+
+	if userFromDB == userFromRequest {
+		return entities.ErrOrderAlreadyCreatedByThisUser
+	}
+	return entities.ErrOrderAlreadyCreatedByAnotherUser
 }
 
-func (o *ordersProcessor) RegisterOrder(ctx context.Context) error {
-	//TODO implement me
-	// write order to DB with CreateOrder
-	// push it to the queue
-	panic("implement me")
+func (o *ordersProcessor) RegisterOrder(ctx context.Context, orderNumber int, userID string) error {
+	var order entities.Order
+
+	order.OrderID = strconv.Itoa(orderNumber)
+	order.Status = "NEW"
+
+	err := o.repository.CreateOrder(ctx, order, userID)
+	if err != nil {
+		return err
+	}
+	o.queue.Push(order)
+	return nil
 }
 
-func (o *ordersProcessor) GetUserOrder(ctx context.Context) error {
-	//TODO implement me
-	panic("implement me")
+func (o *ordersProcessor) GetUserOrder(ctx context.Context, userID string) ([]entities.OrderWithTime, error) {
+	orders, err := o.repository.GetOrdersForUser(ctx, userID)
+	if err != nil {
+		return orders, err
+	}
+
+	return orders, nil
 }
 
 func NewOrdersProcessor(repository ordersRepository, queue ordersQueue) *ordersProcessor {
