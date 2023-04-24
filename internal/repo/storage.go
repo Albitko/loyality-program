@@ -28,13 +28,12 @@ const schema = `
 	  	user_id text not null references users(id),
 	    status text not null,
 	    accrual float not null default 0,
-		"current" float not null default 0,
-        withdrawn float not null  default 0,
 	    uploaded_at timestamp
 	);
 	CREATE TABLE IF NOT EXISTS withdrawals (
+	    "order_number" text primary key unique,
 	    user_id text not null references users(id),
-		"sum" float not null,
+		"withdraw" float not null,
 		processed_at timestamp
 	);
  	`
@@ -46,9 +45,8 @@ type repository struct {
 
 func (r *repository) UpdateOrder(ctx context.Context, order entities.Order) error {
 	updateOrder, err := r.db.PrepareContext(
-		ctx, "UPDATE orders SET status=$1, accrual=$2, current=$2 WHERE order_number=$3;",
+		ctx, "UPDATE orders SET status=$1, accrual=$2 WHERE order_number=$3;",
 	)
-	log.Println(order)
 	defer updateOrder.Close()
 	if err != nil {
 		return err
@@ -60,19 +58,93 @@ func (r *repository) UpdateOrder(ctx context.Context, order entities.Order) erro
 	return nil
 }
 
-func (r *repository) GetUserBalance(ctx context.Context, user string) (string, error) {
-	//TODO implement me
-	panic("implement me")
+func (r *repository) GetUserBalance(ctx context.Context, user string) (float64, error) {
+	var accrualTotal float64
+	selectUserBalance, err := r.db.PrepareContext(
+		ctx, "SELECT coalesce(SUM(accrual), 0.00) FROM orders WHERE user_id =$1;",
+	)
+	defer selectUserBalance.Close()
+	if err != nil {
+		return accrualTotal, err
+	}
+	err = selectUserBalance.QueryRowContext(ctx, user).Scan(&accrualTotal)
+
+	if err != nil {
+		return accrualTotal, err
+	}
+	return accrualTotal, nil
 }
 
-func (r *repository) GetUserWithdrawn(ctx context.Context, user string) (string, error) {
-	//TODO implement me
-	panic("implement me")
+func (r *repository) GetUserWithdrawn(ctx context.Context, user string) (float64, error) {
+	var withdrawnTotal float64
+	selectUserBalance, err := r.db.PrepareContext(
+		ctx, "SELECT coalesce(SUM(withdraw), 0.00) FROM withdrawals WHERE user_id =$1;",
+	)
+	defer selectUserBalance.Close()
+	if err != nil {
+		return withdrawnTotal, err
+	}
+	err = selectUserBalance.QueryRowContext(ctx, user).Scan(&withdrawnTotal)
+	log.Println(err)
+	if err != nil {
+		return withdrawnTotal, err
+	}
+	return withdrawnTotal, nil
 }
 
-func (r *repository) Withdraw(ctx context.Context, amount string) error {
-	//TODO implement me
-	panic("implement me")
+func (r *repository) GetUserAllWithdrawals(ctx context.Context, userId string) ([]entities.WithdrawWithTime, error) {
+	var withdrawals []entities.WithdrawWithTime
+	var withdraw entities.WithdrawWithTime
+
+	selectWithdrawalsForUser, err := r.db.PrepareContext(
+		ctx,
+		"SELECT order_number, withdraw, processed_at FROM withdrawals WHERE user_id=$1 ORDER BY processed_at;",
+	)
+	defer selectWithdrawalsForUser.Close()
+	if err != nil {
+		return withdrawals, err
+	}
+	row, err := selectWithdrawalsForUser.QueryContext(ctx, userId)
+	defer row.Close()
+	if err != nil {
+		return withdrawals, err
+	}
+
+	if err = row.Err(); err != nil {
+		return withdrawals, err
+	}
+	for row.Next() {
+		err := row.Scan(&withdraw.Order, &withdraw.Sum, &withdraw.ProcessedAt)
+		if err != nil {
+			return withdrawals, err
+		}
+		withdrawals = append(withdrawals, withdraw)
+	}
+	if len(withdrawals) == 0 {
+		return withdrawals, entities.ErrNoWithdrawals
+	}
+	return withdrawals, nil
+}
+
+func (r *repository) Withdraw(ctx context.Context, userID string, withdrawRequest entities.Withdraw) error {
+	now := time.Now()
+	processedAt := now.Format(time.RFC3339)
+
+	createOrder, err := r.db.PrepareContext(
+		ctx, "INSERT INTO withdrawals (order_number, user_id, withdraw, processed_at) VALUES ($1, $2, $3, $4);",
+	)
+	defer createOrder.Close()
+
+	if err != nil {
+		return err
+	}
+	_, err = createOrder.ExecContext(ctx, withdrawRequest.Order, userID, withdrawRequest.Sum, processedAt)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (r *repository) GetUserForOrder(ctx context.Context, order string) (string, error) {
