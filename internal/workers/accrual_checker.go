@@ -35,7 +35,6 @@ func (a *accrualChecker) loop() {
 		if err != nil {
 			continue
 		}
-
 		if updatedOrder.Status != "INVALID" && updatedOrder.Status != "PROCESSED" {
 			a.queue.Push(updatedOrder)
 		}
