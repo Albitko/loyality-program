@@ -56,7 +56,7 @@ func Run() {
 	authorized.POST("orders", ordersHandler.CreateOrder)
 	authorized.GET("orders", ordersHandler.GetOrders)
 	authorized.GET("balance", balanceHandler.GetBalance)
-	authorized.GET("balance/withdraw", balanceHandler.Withdraw)
+	authorized.POST("balance/withdraw", balanceHandler.Withdraw)
 	authorized.GET("withdrawals", balanceHandler.GetWithdrawn)
 
 	err = r.Run(cfg.RunAddress)
