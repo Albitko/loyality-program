@@ -52,7 +52,7 @@ func (o *ordersHandler) CreateOrder(c *gin.Context) {
 			c.JSON(http.StatusInternalServerError, entities.ErrorResponse{Message: err.Error()})
 			return
 		}
-		c.JSON(http.StatusCreated, entities.ErrorResponse{Message: "Order added"})
+		c.JSON(http.StatusAccepted, entities.ErrorResponse{Message: "Order added"})
 		return
 	case entities.ErrOrderAlreadyCreatedByThisUser:
 		c.JSON(http.StatusOK, entities.ErrorResponse{Message: "Order already registered by this user"})
