@@ -10,4 +10,6 @@ var (
 	ErrOrderAlreadyCreatedByThisUser    = errors.New("user has already created this order")
 	ErrOrderAlreadyCreatedByAnotherUser = errors.New("user has already created another order")
 	ErrNoOrderForUser                   = errors.New("there is no order for this user")
+	ErrInsufficientFunds                = errors.New("insufficient funds for this user")
+	ErrNoWithdrawals                    = errors.New("no withdrawals for this user")
 )
