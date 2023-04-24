@@ -64,7 +64,7 @@ func (b *balanceHandler) Withdraw(c *gin.Context) {
 		return
 	}
 	if err != nil {
-		c.JSON(http.StatusBadRequest, entities.ErrorResponse{Message: err.Error()})
+		c.JSON(http.StatusInternalServerError, entities.ErrorResponse{Message: err.Error()})
 		return
 	}
 }

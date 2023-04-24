@@ -29,7 +29,7 @@ func (b balanceProcessor) GetUserBalance(ctx context.Context, userId string) (en
 		return balance, err
 	}
 	balance.Current = accrualsTotal - withdrawnTotal
-	balance.Withdrawn = int(withdrawnTotal)
+	balance.Withdrawn = withdrawnTotal
 
 	return balance, nil
 }
@@ -44,7 +44,7 @@ func (b balanceProcessor) Withdraw(ctx context.Context, userID string, request e
 	if err != nil {
 		return err
 	}
-	if balance.Current < float64(request.Sum) {
+	if balance.Current < request.Sum {
 		return entities.ErrInsufficientFunds
 	}
 	err = b.repository.Withdraw(ctx, userID, request)
