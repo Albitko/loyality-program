@@ -21,12 +21,11 @@ type authenticator struct {
 }
 
 func (a *authenticator) CreateAccessToken(user entities.User) (string, error) {
-	exp := time.Now().Add(time.Hour).Unix()
 	claims := &entities.JwtCustomClaims{
 		Name: user.Login,
 		ID:   user.ID,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: exp,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: &jwt.NumericDate{Time: time.Now().Add(time.Hour)},
 		},
 	}
 	unsignedToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
