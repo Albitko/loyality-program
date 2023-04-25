@@ -108,7 +108,7 @@ func (r *repository) GetUserWithdrawn(ctx context.Context, user string) (float64
 	return withdrawnTotal, nil
 }
 
-func (r *repository) GetUserAllWithdrawals(ctx context.Context, userId string) ([]entities.WithdrawWithTime, error) {
+func (r *repository) GetUserAllWithdrawals(ctx context.Context, userID string) ([]entities.WithdrawWithTime, error) {
 	var withdrawals []entities.WithdrawWithTime
 	var withdraw entities.WithdrawWithTime
 
@@ -125,7 +125,7 @@ func (r *repository) GetUserAllWithdrawals(ctx context.Context, userId string) (
 	if err != nil {
 		return withdrawals, err
 	}
-	row, err := selectWithdrawalsForUser.QueryContext(ctx, userId)
+	row, err := selectWithdrawalsForUser.QueryContext(ctx, userID)
 	defer func(row *sql.Rows) {
 		err := row.Close()
 		if err != nil {

@@ -10,6 +10,7 @@ import (
 	"github.com/Albitko/loyalty-program/internal/utils"
 )
 
+//go:generate mockery --name userRepository
 type userRepository interface {
 	Register(ctx context.Context, id, login, hashedPassword string) error
 	GetCredentials(ctx context.Context, login string) (entities.User, error)

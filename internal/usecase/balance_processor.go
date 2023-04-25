@@ -9,7 +9,7 @@ import (
 type balanceRepository interface {
 	GetUserBalance(ctx context.Context, user string) (float64, error)
 	GetUserWithdrawn(ctx context.Context, user string) (float64, error)
-	GetUserAllWithdrawals(ctx context.Context, userId string) ([]entities.WithdrawWithTime, error)
+	GetUserAllWithdrawals(ctx context.Context, userID string) ([]entities.WithdrawWithTime, error)
 	Withdraw(ctx context.Context, userID string, withdrawRequest entities.Withdraw) error
 }
 
@@ -17,14 +17,14 @@ type balanceProcessor struct {
 	repository balanceRepository
 }
 
-func (b balanceProcessor) GetUserBalance(ctx context.Context, userId string) (entities.Balance, error) {
+func (b balanceProcessor) GetUserBalance(ctx context.Context, userID string) (entities.Balance, error) {
 	var balance entities.Balance
 
-	accrualsTotal, err := b.repository.GetUserBalance(ctx, userId)
+	accrualsTotal, err := b.repository.GetUserBalance(ctx, userID)
 	if err != nil {
 		return balance, err
 	}
-	withdrawnTotal, err := b.repository.GetUserWithdrawn(ctx, userId)
+	withdrawnTotal, err := b.repository.GetUserWithdrawn(ctx, userID)
 	if err != nil {
 		return balance, err
 	}
@@ -34,8 +34,8 @@ func (b balanceProcessor) GetUserBalance(ctx context.Context, userId string) (en
 	return balance, nil
 }
 
-func (b balanceProcessor) GetUserWithdrawals(ctx context.Context, userId string) ([]entities.WithdrawWithTime, error) {
-	withdrawals, err := b.repository.GetUserAllWithdrawals(ctx, userId)
+func (b balanceProcessor) GetUserWithdrawals(ctx context.Context, userID string) ([]entities.WithdrawWithTime, error) {
+	withdrawals, err := b.repository.GetUserAllWithdrawals(ctx, userID)
 	return withdrawals, err
 }
 
