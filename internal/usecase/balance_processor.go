@@ -6,6 +6,7 @@ import (
 	"github.com/Albitko/loyalty-program/internal/entities"
 )
 
+//go:generate mockery --name balanceRepository
 type balanceRepository interface {
 	GetUserBalance(ctx context.Context, user string) (float64, error)
 	GetUserWithdrawn(ctx context.Context, user string) (float64, error)
