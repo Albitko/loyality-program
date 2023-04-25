@@ -2,18 +2,19 @@ package usecase
 
 import (
 	"context"
-	"log"
 	"strconv"
 
 	"github.com/Albitko/loyalty-program/internal/entities"
 )
 
+//go:generate mockery --name ordersRepository
 type ordersRepository interface {
 	GetUserForOrder(ctx context.Context, order string) (string, error)
 	CreateOrder(ctx context.Context, order entities.Order, userID string) error
 	GetOrdersForUser(ctx context.Context, user string) ([]entities.OrderWithTime, error)
 }
 
+//go:generate mockery --name ordersQueue
 type ordersQueue interface {
 	Push(entities.Order)
 }
@@ -25,7 +26,6 @@ type ordersProcessor struct {
 
 func (o *ordersProcessor) CheckOrderExist(ctx context.Context, order int, userFromRequest string) error {
 	userFromDB, err := o.repository.GetUserForOrder(ctx, strconv.Itoa(order))
-	log.Println(err)
 	if err != nil {
 		return err
 	}
