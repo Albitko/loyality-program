@@ -12,6 +12,7 @@ import (
 	_ "github.com/jackc/pgx/v5/stdlib"
 
 	"github.com/Albitko/loyalty-program/internal/entities"
+	"github.com/Albitko/loyalty-program/internal/utils"
 )
 
 const (
@@ -47,7 +48,12 @@ func (r *repository) UpdateOrder(ctx context.Context, order entities.Order) erro
 	updateOrder, err := r.db.PrepareContext(
 		ctx, "UPDATE orders SET status=$1, accrual=$2 WHERE order_number=$3;",
 	)
-	defer updateOrder.Close()
+	defer func(updateOrder *sql.Stmt) {
+		err = updateOrder.Close()
+		if err != nil {
+			utils.Logger.Error(err.Error())
+		}
+	}(updateOrder)
 	if err != nil {
 		return err
 	}
@@ -63,7 +69,12 @@ func (r *repository) GetUserBalance(ctx context.Context, user string) (float64, 
 	selectUserBalance, err := r.db.PrepareContext(
 		ctx, "SELECT coalesce(SUM(accrual), 0.00) FROM orders WHERE user_id =$1;",
 	)
-	defer selectUserBalance.Close()
+	defer func(selectUserBalance *sql.Stmt) {
+		err := selectUserBalance.Close()
+		if err != nil {
+			utils.Logger.Error(err.Error())
+		}
+	}(selectUserBalance)
 	if err != nil {
 		return accrualTotal, err
 	}
@@ -80,7 +91,12 @@ func (r *repository) GetUserWithdrawn(ctx context.Context, user string) (float64
 	selectUserBalance, err := r.db.PrepareContext(
 		ctx, "SELECT coalesce(SUM(withdraw), 0.00) FROM withdrawals WHERE user_id =$1;",
 	)
-	defer selectUserBalance.Close()
+	defer func(selectUserBalance *sql.Stmt) {
+		err := selectUserBalance.Close()
+		if err != nil {
+			utils.Logger.Error(err.Error())
+		}
+	}(selectUserBalance)
 	if err != nil {
 		return withdrawnTotal, err
 	}
@@ -100,12 +116,22 @@ func (r *repository) GetUserAllWithdrawals(ctx context.Context, userId string) (
 		ctx,
 		"SELECT order_number, withdraw, processed_at FROM withdrawals WHERE user_id=$1 ORDER BY processed_at;",
 	)
-	defer selectWithdrawalsForUser.Close()
+	defer func(selectWithdrawalsForUser *sql.Stmt) {
+		err := selectWithdrawalsForUser.Close()
+		if err != nil {
+			utils.Logger.Error(err.Error())
+		}
+	}(selectWithdrawalsForUser)
 	if err != nil {
 		return withdrawals, err
 	}
 	row, err := selectWithdrawalsForUser.QueryContext(ctx, userId)
-	defer row.Close()
+	defer func(row *sql.Rows) {
+		err := row.Close()
+		if err != nil {
+			utils.Logger.Error(err.Error())
+		}
+	}(row)
 	if err != nil {
 		return withdrawals, err
 	}
@@ -133,7 +159,12 @@ func (r *repository) Withdraw(ctx context.Context, userID string, withdrawReques
 	createOrder, err := r.db.PrepareContext(
 		ctx, "INSERT INTO withdrawals (order_number, user_id, withdraw, processed_at) VALUES ($1, $2, $3, $4);",
 	)
-	defer createOrder.Close()
+	defer func(createOrder *sql.Stmt) {
+		err := createOrder.Close()
+		if err != nil {
+			utils.Logger.Error(err.Error())
+		}
+	}(createOrder)
 
 	if err != nil {
 		return err
@@ -153,7 +184,12 @@ func (r *repository) GetUserForOrder(ctx context.Context, order string) (string,
 	selectUserIDForOrder, err := r.db.PrepareContext(
 		ctx, "SELECT user_id FROM orders WHERE order_number=$1;",
 	)
-	defer selectUserIDForOrder.Close()
+	defer func(selectUserIDForOrder *sql.Stmt) {
+		err := selectUserIDForOrder.Close()
+		if err != nil {
+			utils.Logger.Error(err.Error())
+		}
+	}(selectUserIDForOrder)
 	if err != nil {
 		return "", err
 	}
@@ -176,7 +212,12 @@ func (r *repository) CreateOrder(ctx context.Context, order entities.Order, user
 	createOrder, err := r.db.PrepareContext(
 		ctx, "INSERT INTO orders (order_number, user_id, status, uploaded_at) VALUES ($1, $2, $3, $4);",
 	)
-	defer createOrder.Close()
+	defer func(createOrder *sql.Stmt) {
+		err := createOrder.Close()
+		if err != nil {
+			utils.Logger.Error(err.Error())
+		}
+	}(createOrder)
 
 	if err != nil {
 		return err
@@ -198,12 +239,22 @@ func (r *repository) GetOrdersForUser(ctx context.Context, userID string) ([]ent
 		ctx,
 		"SELECT order_number, status, accrual, uploaded_at FROM orders WHERE user_id=$1 ORDER BY uploaded_at;",
 	)
-	defer selectOrdersForUser.Close()
+	defer func(selectOrdersForUser *sql.Stmt) {
+		err := selectOrdersForUser.Close()
+		if err != nil {
+			utils.Logger.Error(err.Error())
+		}
+	}(selectOrdersForUser)
 	if err != nil {
 		return orders, err
 	}
 	row, err := selectOrdersForUser.QueryContext(ctx, userID)
-	defer row.Close()
+	defer func(row *sql.Rows) {
+		err := row.Close()
+		if err != nil {
+			utils.Logger.Error(err.Error())
+		}
+	}(row)
 	if err != nil {
 		return orders, err
 	}
@@ -233,7 +284,12 @@ func (r *repository) Register(ctx context.Context, id, login, hashedPassword str
 	if err != nil {
 		return err
 	}
-	defer insertCredentials.Close()
+	defer func(insertCredentials *sql.Stmt) {
+		err := insertCredentials.Close()
+		if err != nil {
+			utils.Logger.Error(err.Error())
+		}
+	}(insertCredentials)
 	_, err = insertCredentials.ExecContext(ctx, id, login, hashedPassword)
 
 	if err != nil && errors.As(err, &pgErr) {
@@ -257,7 +313,12 @@ func (r *repository) GetCredentials(ctx context.Context, login string) (entities
 	if err != nil {
 		return user, err
 	}
-	defer selectPassForLogin.Close()
+	defer func(selectPassForLogin *sql.Stmt) {
+		err := selectPassForLogin.Close()
+		if err != nil {
+			utils.Logger.Error(err.Error())
+		}
+	}(selectPassForLogin)
 
 	err = selectPassForLogin.QueryRowContext(ctx, login).Scan(&id, &hashedPassword)
 	if err != nil {
@@ -280,7 +341,10 @@ func (r *repository) Ping() error {
 }
 
 func (r *repository) Close() {
-	r.db.Close()
+	err := r.db.Close()
+	if err != nil {
+		return
+	}
 }
 
 func NewRepository(ctx context.Context, psqlConn string) *repository {

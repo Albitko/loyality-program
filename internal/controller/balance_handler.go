@@ -14,8 +14,8 @@ import (
 )
 
 type balanceProcessor interface {
-	GetUserBalance(ctx context.Context, userId string) (entities.Balance, error)
-	GetUserWithdrawals(ctx context.Context, userId string) ([]entities.WithdrawWithTime, error)
+	GetUserBalance(ctx context.Context, userID string) (entities.Balance, error)
+	GetUserWithdrawals(ctx context.Context, userID string) ([]entities.WithdrawWithTime, error)
 	Withdraw(ctx context.Context, userID string, request entities.Withdraw) error
 }
 type balanceHandler struct {

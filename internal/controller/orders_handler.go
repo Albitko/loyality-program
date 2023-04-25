@@ -83,7 +83,6 @@ func (o *ordersHandler) GetOrders(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, orders)
-	return
 }
 
 func NewOrdersHandler(processor ordersProcessor) *ordersHandler {

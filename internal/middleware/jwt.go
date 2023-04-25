@@ -14,7 +14,7 @@ func JwtAuthMiddleware(secret string) gin.HandlerFunc {
 
 		token, err := jwt.Parse(accessToken, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
 			return []byte(secret), nil
 		})
@@ -34,6 +34,5 @@ func JwtAuthMiddleware(secret string) gin.HandlerFunc {
 		userID := fmt.Sprintf("%v", claims["id"])
 		c.Set("x-user-id", userID)
 		c.Next()
-		return
 	}
 }
