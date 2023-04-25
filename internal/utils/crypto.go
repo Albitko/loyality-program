@@ -16,11 +16,11 @@ func HexHash(input string) string {
 }
 
 func GenerateSecret() string {
-	rand.Seed(time.Now().UnixNano())
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	letterRunes := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	secret := make([]rune, secretLength)
 	for i := range secret {
-		secret[i] = letterRunes[rand.Intn(len(letterRunes))]
+		secret[i] = letterRunes[r.Intn(len(letterRunes))]
 	}
 	return string(secret)
 }
