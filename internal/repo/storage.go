@@ -347,22 +347,21 @@ func (r *repository) Close() {
 	}
 }
 
-func NewRepository(ctx context.Context, psqlConn string) *repository {
+func NewRepository(ctx context.Context, psqlConn string) (*repository, error) {
 	db, err := sql.Open("pgx", psqlConn)
 	if err != nil {
-		log.Fatal(err)
+		return &repository{}, err
 	}
 	if err = db.Ping(); err != nil {
-		log.Fatal(err)
+		return &repository{}, err
 	}
-	result, err := db.ExecContext(ctx, schema)
+	_, err = db.ExecContext(ctx, schema)
 	if err != nil {
-		log.Fatal(err)
+		return &repository{}, err
 	}
-	log.Println(result)
 
 	return &repository{
 		db:  db,
 		ctx: ctx,
-	}
+	}, nil
 }
