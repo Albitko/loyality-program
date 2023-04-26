@@ -7,8 +7,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 
 	"github.com/Albitko/loyalty-program/internal/entities"
+	"github.com/Albitko/loyalty-program/internal/utils"
 )
 
 type userAuthenticator interface {
@@ -25,6 +27,7 @@ func (u *userAuthHandler) Register(c *gin.Context) {
 	var request entities.AuthRequest
 	err := c.ShouldBindJSON(&request)
 	if err != nil {
+		utils.Logger.Error("userAuthHandler:Register - request bind JSON ", zap.Error(err))
 		c.JSON(http.StatusBadRequest, entities.ErrorResponse{Message: err.Error()})
 		return
 	}
@@ -37,16 +40,19 @@ func (u *userAuthHandler) Register(c *gin.Context) {
 
 	err = u.auth.Register(c, user)
 	if errors.Is(err, entities.ErrLoginAlreadyInUse) {
+		utils.Logger.Error("userAuthHandler:Register - login already in use", zap.Error(err))
 		c.JSON(http.StatusConflict, entities.ErrorResponse{Message: "User already exists with the given login"})
 		return
 	}
 	if err != nil {
+		utils.Logger.Error("userAuthHandler:Register - Register ", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, entities.ErrorResponse{Message: err.Error()})
 		return
 	}
 
 	accessToken, err := u.auth.CreateAccessToken(user)
 	if err != nil {
+		utils.Logger.Error("userAuthHandler:Register - CreateAccessToken ", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, entities.ErrorResponse{Message: err.Error()})
 		return
 	}
@@ -58,22 +64,26 @@ func (u *userAuthHandler) Login(c *gin.Context) {
 	var request entities.AuthRequest
 	err := c.ShouldBindJSON(&request)
 	if err != nil {
+		utils.Logger.Error("userAuthHandler:Login - request bind JSON", zap.Error(err))
 		c.JSON(http.StatusBadRequest, entities.ErrorResponse{Message: err.Error()})
 		return
 	}
 
 	user, err := u.auth.Auth(c, request.Login, request.Password)
 	if errors.Is(err, entities.ErrInvalidCredentials) {
+		utils.Logger.Error("userAuthHandler:Login - wrong credentials", zap.Error(err))
 		c.JSON(http.StatusUnauthorized, entities.ErrorResponse{Message: "Invalid login or password"})
 		return
 	}
 	if err != nil {
+		utils.Logger.Error("userAuthHandler:Login - Auth", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, entities.ErrorResponse{Message: err.Error()})
 		return
 	}
 
 	accessToken, err := u.auth.CreateAccessToken(user)
 	if err != nil {
+		utils.Logger.Error("userAuthHandler:Login - CreateAccessToken", zap.Error(err))
 		c.JSON(http.StatusInternalServerError, entities.ErrorResponse{Message: err.Error()})
 		return
 	}

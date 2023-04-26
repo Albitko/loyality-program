@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
@@ -101,7 +100,6 @@ func (r *repository) GetUserWithdrawn(ctx context.Context, user string) (float64
 		return withdrawnTotal, err
 	}
 	err = selectUserBalance.QueryRowContext(ctx, user).Scan(&withdrawnTotal)
-	log.Println(err)
 	if err != nil {
 		return withdrawnTotal, err
 	}
