@@ -30,10 +30,13 @@ func Run() {
 		panic(fmt.Errorf("create config failed: %w", err))
 	}
 
-	storage := repo.NewRepository(ctx, cfg.DatabaseURI)
+	storage, err := repo.NewRepository(ctx, cfg.DatabaseURI)
+	if err != nil {
+		panic(fmt.Errorf("create repository failed: %w", err))
+	}
 	defer storage.Close()
 
-	queue := workers.InitWorkers(ctx, storage, cfg.AccrualSystemAddress)
+	queue := workers.New(ctx, storage, cfg.AccrualSystemAddress)
 
 	secret := utils.GenerateSecret()
 	userAuthenticator := usecase.NewAuthenticator(storage, secret)
