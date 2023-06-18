@@ -2,27 +2,44 @@ package app
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/Albitko/loyalty-program/internal/config"
 	"github.com/Albitko/loyalty-program/internal/controller"
+	"github.com/Albitko/loyalty-program/internal/middleware"
 	"github.com/Albitko/loyalty-program/internal/repo"
 	"github.com/Albitko/loyalty-program/internal/usecase"
+	"github.com/Albitko/loyalty-program/internal/utils"
 	"github.com/Albitko/loyalty-program/internal/workers"
 )
 
-func Run() {
-	// Implement config with ENV and FLAG
+func init() {
+	utils.InitializeLogger()
+	utils.InitializeRestyClient()
+}
 
+func Run() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	storage := repo.NewRepository(ctx, "postgresql://localhost:5432/postgres")
+	defer func() { _ = utils.Logger.Sync() }()
+	cfg, err := config.New()
+	if err != nil {
+		panic(fmt.Errorf("create config failed: %w", err))
+	}
+
+	storage, err := repo.NewRepository(ctx, cfg.DatabaseURI)
+	if err != nil {
+		panic(fmt.Errorf("create repository failed: %w", err))
+	}
 	defer storage.Close()
 
-	queue := workers.InitWorkers(ctx, storage, "https://test-service.com")
+	queue := workers.New(ctx, storage, cfg.AccrualSystemAddress)
 
-	userAuthenticator := usecase.NewAuthenticator(storage)
+	secret := utils.GenerateSecret()
+	userAuthenticator := usecase.NewAuthenticator(storage, secret)
 	ordersProcessor := usecase.NewOrdersProcessor(storage, queue)
 	balanceProcessor := usecase.NewBalanceProcessor(storage)
 
@@ -38,15 +55,15 @@ func Run() {
 	r.POST("/api/user/login", userHandler.Login)
 
 	authorized := r.Group("/api/user/")
-	// authorized.Use() JWT middleware
+	authorized.Use(middleware.JwtAuthMiddleware(secret))
 	authorized.POST("orders", ordersHandler.CreateOrder)
 	authorized.GET("orders", ordersHandler.GetOrders)
 	authorized.GET("balance", balanceHandler.GetBalance)
-	authorized.GET("balance/withdraw", balanceHandler.Withdraw)
+	authorized.POST("balance/withdraw", balanceHandler.Withdraw)
 	authorized.GET("withdrawals", balanceHandler.GetWithdrawn)
 
-	err := r.Run(":8080")
+	err = r.Run(cfg.RunAddress)
 	if err != nil {
-		return
+		panic(fmt.Errorf("start server failed: %w", err))
 	}
 }

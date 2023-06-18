@@ -26,18 +26,22 @@ type accrualChecker struct {
 
 func (a *accrualChecker) loop() {
 	for {
-		order := a.queue.PopWait()
-		updatedOrder, err := a.getter.GetAccrual(order.OrderID)
-		if err != nil {
-			continue
-		}
-		err = a.storage.UpdateOrder(a.ctx, updatedOrder)
-		if err != nil {
-			continue
-		}
-
-		if updatedOrder.Status != "INVALID" && updatedOrder.Status != "PROCESSED" {
-			a.queue.Push(updatedOrder)
+		select {
+		case <-a.ctx.Done():
+			return
+		default:
+			order := a.queue.PopWait()
+			updatedOrder, err := a.getter.GetAccrual(order.OrderID)
+			if err != nil {
+				continue
+			}
+			err = a.storage.UpdateOrder(a.ctx, updatedOrder)
+			if err != nil {
+				continue
+			}
+			if updatedOrder.Status != "INVALID" && updatedOrder.Status != "PROCESSED" {
+				a.queue.Push(updatedOrder)
+			}
 		}
 	}
 }
@@ -52,7 +56,7 @@ func newAccrualChecker(
 	}
 }
 
-func InitWorkers(ctx context.Context, storage orderStorage, accrualServiceURL string) ordersQueue {
+func New(ctx context.Context, storage orderStorage, accrualServiceURL string) ordersQueue {
 	queue := repo.NewQueue()
 	checkers := make([]*accrualChecker, 0, runtime.NumCPU())
 
